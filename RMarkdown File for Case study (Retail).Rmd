@@ -1,0 +1,351 @@
+---
+title: "R Case Study 1 - Retail"
+output: pdf_document
+geometry: margin=2cm
+---
+
+
+```{r include=FALSE}
+
+#Packages
+require(lubridate)
+require(Hmisc)
+require(dplyr)
+require(reshape2)
+
+# Import files 
+Customer <- read.csv("Customer.csv", header = TRUE)
+prod_cat_info <- read.csv("prod_cat_info.csv",header = T,na.strings = NA)
+Transactions <- read.csv("Transactions.csv", header = T,)
+
+#Type casting
+Customer$customer_Id <- as.character(Customer$customer_Id)
+Customer$city_code <- as.character(Customer$city_code)
+Customer$DOB <- as.Date(Customer$DOB, format= "%d-%m-%Y")
+Transactions$tran_date <- lubridate::dmy(Transactions$tran_date)
+prod_cat_info$prod_cat_code <-as.character(prod_cat_info$prod_cat_code)   
+prod_cat_info$prod_sub_cat_code <-  as.character(prod_cat_info$prod_sub_cat_code)
+Transactions$transaction_id <- as.character(Transactions$transaction_id)
+Transactions$cust_id <- as.character(Transactions$cust_id)
+Transactions$prod_subcat_code <- as.character(Transactions$prod_subcat_code)
+Transactions$prod_cat_code <- as.character(Transactions$prod_cat_code)
+
+
+```
+
+
+### Question 1. Merge the  Customer, prod_cat_info and Transactions Files as Customer_Final
+
+a. Using base merge()
+```{r}
+
+# Q1 Merge the 3 Files as customer_final(Base merge)
+
+Customer_Final <- merge(Transactions,Customer, by.x = "cust_id", 
+                        by.y = "customer_Id",all.x = T)
+
+Customer_Final <- merge(Customer_Final,prod_cat_info, by.x = "prod_cat_code", 
+                        by.y = "prod_cat_code", all.x = T)
+
+
+```
+
+
+b. Using dplyr
+```{r}
+
+# Q1 Merge the 3 Files as customer_final (Dplyr merge)
+
+Customer_Final <- dplyr::left_join(Transactions,Customer, by = c("cust_id" = "customer_Id"))
+
+Customer_Final <- dplyr::left_join(Customer_Final,prod_cat_info, 
+                                   by = "prod_cat_code")
+
+
+
+```
+
+
+### Question 2 Summary report
+  a.Variable names and their data types of Customer_Final dataset
+
+```{r}
+
+#Q2 a. column names and corresponding data types
+str(Customer_Final)
+
+```
+
+  b. Top 10 records of Customer_Final dataset
+
+```{r}
+
+#Q2 b.Top 10 observations
+head(Customer_Final,10)
+
+```
+
+
+  c. 5-number summary of continuous variables
+
+```{r}
+
+#Q2 c.5 number summary for continuous variables
+
+numericvariables <- Customer_Final[ ,sapply(Customer_Final, is.numeric)]
+summary(numericvariables)
+
+```
+
+
+  d. Frequency tables for Categorical variables
+
+```{r}
+
+# Q2 d.Frequency table for all categorical variables
+
+categoricalvariables <- Customer_Final[ ,sapply(Customer_Final, is.character)]
+categoricalvars_F <- categoricalvariables[,-c(1,2)] #removing id variables
+#Frequency table for categorical variables
+
+
+Freq1<- data.frame(dplyr::group_by(categoricalvars_F,prod_subcat_code)%>%
+                     summarise(Count = n())%>%arrange(prod_subcat_code))
+Freq1
+
+Freq2<- data.frame(dplyr::group_by(categoricalvars_F,prod_cat_code)%>%
+                     summarise(Count = n()))%>%arrange(prod_cat_code)
+Freq2
+
+Freq3<-data.frame(dplyr::group_by(categoricalvars_F,Store_type)%>%
+                    summarise(Count = n()))%>%arrange(Store_type)
+Freq3
+
+Freq4<- data.frame(dplyr::filter(categoricalvars_F,Gender != "")
+                   %>%group_by(Gender)
+                   %>%summarise(Count = n()))%>%arrange(Gender)
+Freq4
+
+Freq5<- data.frame(dplyr::filter(categoricalvars_F,city_code != "" )%>%
+                     group_by(city_code)%>%
+                     summarise(Count = n()))%>%arrange(city_code)
+Freq5
+
+Freq6 <-data.frame(dplyr::group_by(categoricalvars_F,prod_cat)%>%
+                     summarise(Count = n()))%>%arrange(prod_cat)
+Freq6
+
+Freq7<- data.frame(dplyr::group_by(categoricalvars_F,prod_sub_cat_code)
+                         %>%summarise(Count = n())
+                   %>%arrange(prod_sub_cat_code))
+Freq7
+
+Freq8<- data.frame(dplyr::group_by(categoricalvars_F,prod_subcat)%>%
+                       summarise(Count = n()))%>%arrange(prod_subcat)
+Freq8
+
+
+```
+
+
+### Question 3. Graphical representation of variables
+  a. Histogram for numeric variables
+```{r}
+
+#Q3 1.Histogram for all the numeric variables
+
+hist1 <- hist(numericvariables$Qty,xlab = "Qty",main="Histogram for Qty")
+
+hist2 <- hist(numericvariables$Rate,xlab = "Rate",main="Histogram for Rate")
+
+hist3 <- hist(numericvariables$Tax,xlab = "Tax",main="Histogram for Tax")
+
+hist2 <- hist(numericvariables$total_amt,xlab = "total_amt",
+              main="Histogram for total_amt")
+
+```
+
+
+  b. Bar Graph for categorical variables
+```{r}
+
+#Bar Graph for all the Categorical variables
+
+freqbar1<- barplot(Count~prod_subcat_code,Freq1,xlab = "prod_subcat_code",
+                   col.lab = "Red",main = "Bar Chart - prod_subcat_code ")
+
+freqbar2 <- barplot(Count~prod_cat_code,Freq2,xlab = "prod_cat_code",
+                    col.lab = "Red",main = "Bar Chart - prod_cat_code ")
+
+freqbar3 <- barplot(Count~Store_type,Freq3,xlab = "Store_type",col.lab = "Red",
+                    main = "Bar Chart - Store_type ")
+
+freqbar4 <- barplot(Count~Gender,Freq4,xlab = "Gender",col.lab = "Red",
+                    main = "Bar Chart - Gender ")
+
+freqbar5 <- barplot(Count~city_code,Freq5,xlab = "city_code",col.lab = "Red",
+                    main = "Bar Chart - city_code ")
+
+freqbar6 <- barplot(Count~prod_cat,Freq6,xlab = "prod_cat",col.lab = "Red",
+                    main = "Bar Chart - prod_cat ")
+
+freqbar7 <- barplot(Count~prod_sub_cat_code,Freq7,xlab = "prod_sub_cat_code",las=2,
+                     col.lab = "Red",main = "Bar Chart - prod_sub_cat_code ")
+
+freqbar8 <- barplot(Count~prod_subcat,Freq8,xlab = "prod_subcat",las=2,
+                     col.lab = "Red",main = "Bar Chart - prod_subcat ")
+
+
+```
+
+
+### Question 4. Information from data
+
+  a.Time period for the transaction data
+
+```{r}
+
+#Q4 a. Calculate the following time period of the available transaction data
+
+firstdate <- min(Customer_Final$tran_date)
+lastdate <- max(Customer_Final$tran_date)
+paste(as.numeric(lastdate - firstdate),"days")
+
+```
+
+
+  b. Number of transactions where the total amount of the transactions are negative
+
+```{r}
+
+#Q4 b. Count the transactions where the total amount of the transactions 
+#are negative
+
+dplyr::filter(Customer_Final,total_amt< 0)%>%summarise(Count = n())
+
+
+```
+
+
+### Question 5. Product categorie/s that are more popular amongst F customers than male customers 
+
+```{r}
+
+#Q5 Analyze which product categories are more popular among female vs male 
+#customers
+Categories <- data.frame(dplyr::filter(Customer_Final,Gender != "")%>%
+                           group_by(prod_cat,Gender)%>%
+                           summarise(frequency = n()))
+ProdGender <- reshape2::dcast(Categories,prod_cat~Gender)
+ProdGender[ProdGender$F>ProdGender$M,1]
+
+```
+
+
+### Question 6. City Code that has the maximum customers and the percentage of customers from that city.
+
+```{r}
+
+#Q6 Which city code has the maximum customers and what was the percentage of 
+#customers from that city.
+sub1<- data.frame(dplyr::filter(Customer_Final,city_code != "")%>%
+                    group_by(city_code,cust_id)%>%
+                    summarise(frequency = n()))
+sub1<-data.frame(group_by(sub1,city_code)%>%
+                   summarise(noofcustomers = n()))
+sub1$percentage <- round((sub1$noofcustomers/sum(sub1$noofcustomers))*100,2)
+sub1[sub1$noofcustomers == max(sub1$noofcustomers),]
+
+```
+
+
+### Question 7. Store type that sells maximum products by value and by quantity
+
+```{r}
+
+#Q7Which store type sells maximum product by value and by quantity
+#By Quantity
+MAxprodbyQTY <- dplyr::group_by(Customer_Final,Store_type)%>%
+  summarise(TProdSold = sum(Qty))
+MAxprodbyQTY[MAxprodbyQTY$TProdSold == max(MAxprodbyQTY$TProdSold),1]
+
+#By Value
+MAxprodbyVALUE <- dplyr::group_by(Customer_Final,Store_type)%>%
+  summarise(TProdSold = sum(total_amt))
+MAxprodbyVALUE[MAxprodbyVALUE$TProdSold == max(MAxprodbyVALUE$TProdSold),1]
+
+
+```
+
+
+### Question 8. Total amount earned for Electronics and Clothing categories from Flagship stores.
+
+```{r}
+
+#Q8What was the total amount earned from electronics and clothing categories 
+#from Flagship stores
+ProdTamt <- data.frame(dplyr::filter(Customer_Final,Store_type == "Flagship store")
+                       %>% group_by(prod_cat)
+                       %>% summarise(Totalamtearned=sum(total_amt)))
+ProdTamt[ProdTamt$prod_cat=="Electronics"|ProdTamt$prod_cat=="Clothing",]
+
+```
+
+
+### Question 9. Total amount earned from Male customers under the Electronics category
+
+```{r}
+
+#Q9 What was the total amount earned from male customers under the electronics
+#category
+data.frame(dplyr::filter(Customer_Final,prod_cat=="Electronics")%>%
+             group_by(Gender)%>%
+             summarise(Totalamtearned=sum(total_amt)))%>%
+  filter(Gender == "M")
+
+```
+
+
+### Question 10.Number of customers who have more than 10 unique transactions after removing all transactions which have any negative amounts
+
+```{r}
+
+#Q10 How many customers have more than 10 unique transactions after removing all transactions which have any negative amounts 
+A <- data.frame(dplyr::filter(Customer_Final,total_amt >0)%>%
+                  group_by(cust_id,transaction_id)%>%
+                  summarise(count = n()))
+B <- data.frame(table(A$cust_id))
+length( B[B$Freq>10,1])
+
+```
+
+
+### Question 11. For all customers ages 25-35
+  a. Total amount spend for "Electronics and "Books" product categories
+  
+```{r}
+
+#Q11 a.For all customers ages 25-35 calculate what was the total amount spent
+#for "Electronics and "Books" product categories
+Customer_Final$Age <- round(as.numeric(Sys.Date() - Customer_Final$DOB )/365.25)
+
+ProdTamt2 <- data.frame(dplyr::filter(Customer_Final, Age >= 25 & Age <= 35)
+                        %>%group_by(prod_cat)%>% 
+                          summarise(TotalamtSpent=sum(total_amt)))
+ProdTamt2[ProdTamt2$prod_cat=="Electronics"|ProdTamt$prod_cat=="Books",]
+
+```
+
+
+  b. Total amount spent by these customers between 1st Jan,2014 to 1st Mar,2014
+  
+```{r}
+
+#Q11 b.For all customers ages 25-35 calculate what was the total amount spent by
+#these customers between 1st Jan,2014 to 1st Mar,2014
+data.frame(dplyr::filter(Customer_Final, Age >= 25 & Age <= 35,
+                         tran_date >= "2014-01-01"& tran_date <= "2014-03-01")
+           %>%summarise(TotalamtSpent=sum(total_amt)))
+
+```
+

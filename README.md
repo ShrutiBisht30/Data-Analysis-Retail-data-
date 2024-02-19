@@ -6,4 +6,4 @@ Data Available: Retail.xlsx (contains following sheets) <br />
   - Transactions - Transactions of customers <br />
   - Product Heirarchy - Product information (category, subcategory,etc.) 
 
-A comprehensive analysis of the data was conducted, utilizing a range of analytics tools such as merging datasets, visualizing data distributions, performing aggregation and grouping operations, applying filters, and more.
+A comprehensive analysis of the data was conducted to answer critical business questions, utilizing a range of analytics tools such as merging datasets, visualizing data distributions, performing aggregation and grouping operations, applying filters, and more.
